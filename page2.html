@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aditya Bhaiya Janmdin Mahotsav</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;800&family=Rozha+One&display=swap" rel="stylesheet">
+<style>
+  :root { --red:#d90429; --yellow:#ffd60a; --blue:#0b3d91; --orange:#ff7b00; --cream:#fff6d6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: #7a0016; }
+  body { font-family: "Baloo 2", "Segoe UI", sans-serif; color: var(--cream); }
+
+  /* ---------- Loud background: spinning sunburst ---------- */
+  .rays {
+    position: fixed; left: 50%; top: 50%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax;
+    background: repeating-conic-gradient(from 0deg, #d90429 0 7deg, #ff7b00 7deg 14deg);
+    animation: spin 40s linear infinite; z-index: 0;
+  }
+  .vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(circle at 50% 45%, rgba(255,214,10,.35), rgba(60,0,10,.75) 85%); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- Gate ---------- */
+  #gate {
+    position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 24px;
+    background: repeating-conic-gradient(from 0deg, #d90429 0 7deg, #ff7b00 7deg 14deg);
+    cursor: pointer; transition: opacity .6s, visibility .6s;
+  }
+  #gate.gone { opacity: 0; visibility: hidden; }
+  #gate .hey { font-family: "Rozha One", serif; font-size: clamp(1.6rem, 6vw, 3rem); color: var(--yellow);
+    text-shadow: 3px 3px 0 #000; line-height: 1.2; }
+  #gate .sub { font-size: 1.2rem; font-weight: 800; background: #000; color: var(--yellow); padding: 6px 16px; border-radius: 6px; }
+  #gate .tap { font-size: 1.4rem; font-weight: 800; background: var(--yellow); color: #000; padding: 10px 26px;
+    border-radius: 999px; border: 4px solid #000; animation: bump .9s ease-in-out infinite; }
+  @keyframes bump { 50% { transform: scale(1.1) rotate(-2deg); } }
+
+  /* ---------- Page layout ---------- */
+  #page { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center;
+    padding-top: env(safe-area-inset-top, 0px); }
+
+  .ticker { width: 100%; background: #000; color: var(--yellow); overflow: hidden; white-space: nowrap;
+    border-bottom: 3px solid var(--yellow); font-weight: 800; font-size: 15px; padding: 5px 0; }
+  .ticker span { display: inline-block; padding-left: 100%; animation: marquee 22s linear infinite; }
+  @keyframes marquee { to { transform: translateX(-100%); } }
+
+  .head { text-align: center; margin-top: 8px; padding: 0 10px; }
+  .head .pre { font-size: clamp(.8rem, 2.6vw, 1.05rem); font-weight: 800; color: #000; background: var(--yellow);
+    display: inline-block; padding: 1px 14px; border-radius: 4px; transform: rotate(-1.5deg); }
+  .head h1 { font-family: "Rozha One", serif; font-weight: 400; font-size: clamp(1.7rem, 7vw, 3.4rem);
+    color: var(--yellow); line-height: 1.05; margin-top: 4px;
+    text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 0 0 22px rgba(255,214,10,.7);
+    animation: blink 1.1s steps(2, jump-none) infinite; }
+  @keyframes blink { 0% { color: var(--yellow); } 100% { color: #fff; } }
+  .head .tagline { font-weight: 800; font-size: clamp(.8rem, 2.8vw, 1.1rem); color: #fff; text-shadow: 2px 2px 0 #000; }
+
+  /* ---------- Flex-board frame ---------- */
+  #frame {
+    position: relative; margin-top: 10px; padding: 34px 26px 24px;
+    background: linear-gradient(180deg, #0b3d91, #06245a);
+    border: 6px solid var(--yellow); border-radius: 10px;
+    box-shadow: 0 0 0 4px #000, 0 18px 40px rgba(0,0,0,.6);
+  }
+  #frame::before, #frame::after {       /* marigold toran */
+    content: ""; position: absolute; left: 0; right: 0; height: 24px;
+    background: radial-gradient(circle at 50% 50%, #ffb703 38%, #e85d04 40% 68%, transparent 70%) 0 0 / 24px 24px repeat-x;
+  }
+  #frame::before { top: -2px; } #frame::after { bottom: -2px; }
+  .corner { position: absolute; font-size: 28px; filter: drop-shadow(2px 2px 0 #000); }
+  .c1 { left: -20px; top: 38%; } .c2 { right: -20px; top: 38%; }
+
+  .scroll { position: relative; display: inline-block; margin-top: 4px; visibility: hidden; filter: drop-shadow(0 10px 18px rgba(0,0,0,.6)); }
+  .scroll.show { visibility: visible; }
+  .paper { display: block; width: auto; height: auto;
+    max-width: min(78vw, 480px); max-height: max(200px, calc(100vh - 330px));
+    clip-path: inset(0 0 100% 0); border: 3px solid #fff; background: #fff; }
+  .rod, .roll { position: absolute; left: -12px; right: -12px; height: 24px; border-radius: 12px;
+    background: linear-gradient(180deg, #4f3319 0%, #b98445 22%, #f6dca4 48%, #c8975a 74%, #4a2f16 100%); z-index: 3; }
+  .rod { top: -12px; opacity: 0; } .roll { top: 0; transform: translateY(-12px); opacity: 0; }
+
+  .slogan { margin-top: 12px; min-height: 2.4em; text-align: center; font-family: "Rozha One", serif;
+    font-size: clamp(1rem, 3.6vw, 1.5rem); color: #fff; text-shadow: 2px 2px 0 #000; padding: 0 14px; }
+  .meter { margin-top: 4px; font-weight: 800; background: #000; color: #39ff14; padding: 2px 14px; border-radius: 4px;
+    font-size: clamp(.8rem, 2.8vw, 1rem); }
+
+  .footer { margin-top: auto; width: 100%; padding: 6px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: #000; border-top: 3px solid var(--yellow); text-align: center; font-weight: 800;
+    font-size: clamp(.7rem, 2.4vw, .95rem); color: var(--yellow); }
+
+  /* ---------- Falling petals, fireworks, floating zindabad ---------- */
+  #fx { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+  .petal { position: fixed; top: -30px; z-index: 19; pointer-events: none; font-size: 20px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translate3d(var(--dx), 110vh, 0) rotate(540deg); } }
+  .zinda { position: fixed; z-index: 25; pointer-events: none; font-family: "Rozha One", serif; color: var(--yellow);
+    text-shadow: 2px 2px 0 #000; font-size: 24px; white-space: nowrap; animation: floatup 1.4s ease-out forwards; }
+  @keyframes floatup { from { opacity: 1; transform: translate(-50%, 0) scale(.8); } to { opacity: 0; transform: translate(-50%, -90px) scale(1.4); } }
+
+  #sound { position: fixed; right: 12px; bottom: calc(54px + env(safe-area-inset-bottom, 0px)); z-index: 30; width: 44px; height: 44px;
+    border-radius: 50%; border: 3px solid #000; background: var(--yellow); color: #000; font-size: 18px; font-weight: 800; cursor: pointer; display: none; }
+  #sound.on { display: block; }
+
+  @media (prefers-reduced-motion: reduce) { .rays, .ticker span, .head h1, #gate .tap { animation: none; } }
+  #skip{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:10;font:inherit;font-weight:600;font-size:15px;color:#3a1250;text-decoration:none;background:linear-gradient(135deg,#ffd166,#ff6fb5);border-radius:999px;padding:9px 18px;box-shadow:0 4px 0 #8a2d73,0 0 18px rgba(255,111,181,.5)}
+#skip:active{transform:translateY(3px);box-shadow:0 1px 0 #8a2d73}
+#skip:focus-visible{outline:3px solid #fff;outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div class="rays"></div><div class="vignette"></div>
+
+<div id="gate" role="button" tabindex="0" aria-label="Open">
+  <div class="hey">॥ Bhaiyon aur Behno ॥</div>
+  <div class="sub">Aditya ke Janmdin par ek vishesh sambodhan</div>
+  <div class="tap">Yahan Dabayein 🙏</div>
+</div>
+
+<div id="page">
+  <div class="ticker"><span>🔴 BREAKING NEWS: Aditya ji ka janmdin aaj! &nbsp;•&nbsp; Poore Mitra Mandal mein khushi ki lehar &nbsp;•&nbsp; Cake par sarvasammati se sahmati &nbsp;•&nbsp; Party ki maang tez &nbsp;•&nbsp; Aditya Bhaiya Zindabad! &nbsp;•&nbsp;</span></div>
+
+  <div class="head">
+    <span class="pre">॥ जन्मदिन महोत्सव ॥</span>
+    <h1>Hardik Shubhkamnayein</h1>
+    <div class="tagline">Chhinaro ke Raja • Bhogi Mandal ke Pradhan</div>
+  </div>
+
+  <div id="frame">
+    <span class="corner c1">🙏</span><span class="corner c2">🙏</span>
+    <div class="scroll" id="scroll">
+      <div class="rod"></div>
+      <img class="paper" id="poster" alt="Birthday poster for Aditya">
+      <div class="roll" id="roll"></div>
+    </div>
+  </div>
+
+  <div class="slogan" id="slogan">&nbsp;</div>
+  <div class="meter">Shubhkamnayein ka Aankda: <span id="count">0</span> 🎉</div>
+
+  <div class="footer">Shubhechhuk: Aditya Mandal (Sthapit: Bahut Pehle) &nbsp;|&nbsp; Jan-hit mein jaari</div>
+</div>
+
+<canvas id="fx"></canvas>
+<audio id="bgm" loop preload="auto"></audio>
+<button id="sound" aria-label="Mute or unmute music">♪</button>
+
+<script>
+/* ====== CHANGE THESE TWO LINES TO MATCH YOUR FILE NAMES ====== */
+const POSTER_FILE = "poster.png";
+const MUSIC_FILE  = "music.mp3";
+/* ============================================================== */
+
+const UNROLL_MS = 3400;
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = id => document.getElementById(id);
+const gate = $("gate"), poster = $("poster"), scroll = $("scroll"), roll = $("roll"),
+      rod = scroll.querySelector(".rod"), bgm = $("bgm"), soundBtn = $("sound"),
+      canvas = $("fx"), ctx = canvas.getContext("2d"), slogan = $("slogan"), countEl = $("count");
+
+poster.src = POSTER_FILE;
+bgm.src = MUSIC_FILE;
+poster.addEventListener("error", () => {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='800'><rect width='100%' height='100%' fill='#fff1d2'/>
+    <text x='300' y='390' font-family='Georgia' font-size='34' text-anchor='middle' fill='#5a3b10'>Put your poster in this folder</text>
+    <text x='300' y='440' font-family='Georgia' font-size='28' text-anchor='middle' fill='#8a6a3a'>named ${POSTER_FILE}</text></svg>`;
+  poster.src = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+}, { once: true });
+
+/* ---------------- Start ---------------- */
+let started = false;
+function start() {
+  if (started) return; started = true;
+  gate.classList.add("gone");
+  bgm.volume = 0;
+  bgm.play().then(() => fadeVolume(0.9, 2500)).catch(() => {});
+  soundBtn.classList.add("on");
+  const go = () => unroll();
+  (poster.complete && poster.naturalWidth) ? go() : poster.addEventListener("load", go, { once: true });
+}
+gate.addEventListener("click", start);
+gate.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); start(); } });
+function fadeVolume(target, ms) {
+  const from = bgm.volume, t0 = performance.now();
+  (function step(t) { const k = Math.min(1, (t - t0) / ms); bgm.volume = from + (target - from) * k; if (k < 1) requestAnimationFrame(step); })(t0);
+}
+soundBtn.addEventListener("click", () => { bgm.muted = !bgm.muted; soundBtn.textContent = bgm.muted ? "✕" : "♪"; });
+
+/* ---------------- Roll-down ---------------- */
+function unroll() {
+  const h = poster.getBoundingClientRect().height || poster.clientHeight;
+  scroll.classList.add("show");
+  rod.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: "forwards" });
+  roll.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "forwards" });
+  if (reduceMotion) {
+    poster.style.clipPath = "inset(0 0 0 0)"; roll.style.transform = `translateY(${h - 12}px)`;
+    setTimeout(afterUnroll, 400); return;
+  }
+  const opts = { duration: UNROLL_MS, delay: 500, easing: "cubic-bezier(.5,.05,.25,1)", fill: "forwards" };
+  poster.animate([{ clipPath: `inset(0 0 ${h}px 0)` }, { clipPath: "inset(0 0 0px 0)" }], opts);
+  const a = roll.animate([{ transform: "translateY(-12px)" }, { transform: `translateY(${h - 12}px)` }], opts);
+  a.onfinish = () => {
+    poster.style.clipPath = "inset(0 0 0 0)"; roll.style.transform = `translateY(${h - 12}px)`;
+    scroll.animate([{ transform: "translateY(0)" }, { transform: "translateY(5px)" }, { transform: "translateY(0)" }], { duration: 380, easing: "ease-out" });
+    afterUnroll();
+  };
+}
+function afterUnroll() { beginFireworks(); startSlogans(); startPetals(); }
+
+/* ---------------- Slogans & petals ---------------- */
+const SLOGANS = [
+  "Aditya Bhaiya Zindabad! Zindabad!",
+  "Jab tak suraj chand rahega, Aditya ka naam rahega!",
+  "Na koi tha, na koi hai.!",
+  "Aaj ka din hai khaas, party mein sabka vishwas!",
+  "Ka kha ga gha padhke, bhatar mare chadh ke!",
+  "Aditya tum aage badho, hum tumhare saath nahi hain!"
+];
+let si = 0;
+function startSlogans() {
+  const show = () => {
+    slogan.style.opacity = 0;
+    setTimeout(() => { slogan.textContent = SLOGANS[si++ % SLOGANS.length]; slogan.style.opacity = 1; }, 250);
+  };
+  slogan.style.transition = "opacity .25s";
+  show(); setInterval(show, 3200);
+}
+function startPetals() {
+  const set = ["🌼", "🏵️", "🌺", "🌸"];
+  setInterval(() => {
+    const p = document.createElement("div");
+    p.className = "petal"; p.textContent = set[Math.floor(Math.random() * set.length)];
+    p.style.left = Math.random() * 100 + "vw";
+    p.style.setProperty("--dx", (Math.random() * 160 - 80) + "px");
+    p.style.animationDuration = (5 + Math.random() * 4) + "s";
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 9500);
+  }, reduceMotion ? 1500 : 380);
+}
+
+/* ---------------- Fireworks ---------------- */
+let W = 0, H = 0, dpr = 1;
+function resize() { dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+resize(); addEventListener("resize", resize);
+
+const rockets = [], sparks = [];
+let running = false, nextLaunch = 0, shubh = 0;
+const hues = [48, 55, 120, 190, 300, 330, 20, 0];
+const randomHue = () => hues[Math.floor(Math.random() * hues.length)] + Math.random() * 14 - 7;
+
+function launch(x, targetY) {
+  const ty = targetY ?? H * (0.12 + Math.random() * 0.4);
+  rockets.push({ x: x ?? W * (0.1 + Math.random() * 0.8), y: H + 10, vx: (Math.random() - .5) * 1.2,
+    vy: -Math.sqrt(2 * 0.12 * (H - ty)), hue: randomHue() });
+}
+function explode(x, y, hue) {
+  const kind = Math.random(), count = reduceMotion ? 40 : 90 + Math.floor(Math.random() * 60), speed = 2.4 + Math.random() * 2.4;
+  for (let i = 0; i < count; i++) {
+    const a = (Math.PI * 2 * i) / count; let s = speed * (kind < .35 ? 1 : .4 + Math.random() * .8);
+    if (kind > .8) s *= .6 + .4 * Math.abs(Math.sin(a * 5));
+    sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, decay: .008 + Math.random() * .012,
+      hue: hue + Math.random() * 30 - 15, size: 1.4 + Math.random() * 1.6, twinkle: Math.random() < .3 });
+  }
+  for (let i = 0; i < 24; i++) { const a = Math.random() * 6.283, s = Math.random() * 1.6;
+    sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, decay: .006 + Math.random() * .008, hue: 48, size: 1.2, twinkle: true }); }
+  shubh += 11 + Math.floor(Math.random() * 90); countEl.textContent = shubh.toLocaleString("en-IN");
+}
+function frame(t) {
+  ctx.globalCompositeOperation = "destination-out"; ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = "lighter";
+  if (running && t > nextLaunch) {
+    const n = Math.random() < .3 ? 2 : 1; for (let i = 0; i < n; i++) launch();
+    nextLaunch = t + (reduceMotion ? 1800 : 450 + Math.random() * 700);
+  }
+  for (let i = rockets.length - 1; i >= 0; i--) {
+    const r = rockets[i]; r.x += r.vx; r.y += r.vy; r.vy += .12;
+    ctx.beginPath(); ctx.fillStyle = `hsl(${r.hue} 100% 75%)`; ctx.arc(r.x, r.y, 2.2, 0, 6.283); ctx.fill();
+    if (r.vy >= -.6) { explode(r.x, r.y, r.hue); rockets.splice(i, 1); }
+  }
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const p = sparks[i]; p.x += p.vx; p.y += p.vy; p.vx *= .985; p.vy = p.vy * .985 + .045; p.life -= p.decay;
+    if (p.life <= 0) { sparks.splice(i, 1); continue; }
+    const a = p.twinkle ? p.life * (.5 + Math.random() * .5) : p.life;
+    ctx.beginPath(); ctx.fillStyle = `hsla(${p.hue} 100% 65% / ${a})`; ctx.arc(p.x, p.y, p.size * (.5 + p.life * .6), 0, 6.283); ctx.fill();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+function beginFireworks() {
+  running = true;
+  [.2, .5, .8].forEach((fx, i) => setTimeout(() => launch(W * fx, H * (.2 + Math.random() * .15)), i * 220));
+}
+
+/* tap anywhere: your own cracker + a chant */
+const CHANTS = ["Zindabad!", "Aditya Bhaiya Amar Rahein!", "Jai Ho!", "Bhaiya Ji Ki Jai!", "Party Chahiye!"];
+addEventListener("pointerdown", e => {
+  if (!running || e.target.closest("#sound")) return;
+  launch(e.clientX, e.clientY);
+  const z = document.createElement("div"); z.className = "zinda";
+  z.textContent = CHANTS[Math.floor(Math.random() * CHANTS.length)];
+  z.style.left = e.clientX + "px"; z.style.top = e.clientY + "px";
+  document.body.appendChild(z); setTimeout(() => z.remove(), 1400);
+});
+</script>
+<a id="skip" href="page3.html">Next page ➜</a>
+</body>
+</html>

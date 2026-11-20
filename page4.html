@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aditya’s ID Card 🎓</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{overflow-x:hidden;min-height:100%}
+  body{
+    font-family:"Comic Sans MS","Chalkboard SE","Comic Neue",cursive,sans-serif;
+    background:linear-gradient(135deg,#ffe29f,#ffa99f,#ff719a,#9b8cff,#6fd3ff);
+    background-size:400% 400%;animation:bg 12s ease infinite;
+    color:#222;
+  }
+  @keyframes bg{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+
+  /* ticker */
+  .ticker{position:fixed;top:0;left:0;right:0;height:34px;background:#111;color:#ffe14d;z-index:50;overflow:hidden;display:flex;align-items:center;font-size:14px;font-weight:bold}
+  .ticker span{white-space:nowrap;padding-left:100%;animation:tick 28s linear infinite}
+  @keyframes tick{to{transform:translateX(-100%)}}
+
+  /* floating emojis */
+  .floaty{position:fixed;bottom:-60px;font-size:30px;pointer-events:none;z-index:1;animation:rise linear forwards}
+  @keyframes rise{to{transform:translateY(-115vh) rotate(360deg);opacity:.9}}
+
+  .stage{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding-top:34px;padding-bottom:40px;position:relative;z-index:2}
+
+  /* swinging lanyard + card */
+  .swing{transform-origin:50% 0;animation:swing 3.6s ease-in-out infinite;display:flex;flex-direction:column;align-items:center}
+  @keyframes swing{0%,100%{transform:rotate(3.5deg)}50%{transform:rotate(-3.5deg)}}
+  .swing.dance{animation:dance .7s ease-in-out infinite}
+  @keyframes dance{0%,100%{transform:rotate(9deg) scale(1.03)}50%{transform:rotate(-9deg) scale(1.07)}}
+
+  .straps{position:relative;width:0;height:230px}
+  .strap{
+    position:absolute;bottom:0;left:-23px;width:46px;height:640px;transform-origin:50% 100%;
+    background:linear-gradient(90deg,#08306e 0%,#1f6fe5 18%,#2f86ff 50%,#1f6fe5 82%,#08306e 100%);
+    border-left:3px dashed rgba(255,255,255,.55);border-right:3px dashed rgba(255,255,255,.55);
+    box-shadow:0 4px 10px rgba(0,0,0,.3);
+    display:flex;align-items:flex-end;justify-content:center;overflow:hidden;
+  }
+  .strap.l{transform:rotate(-13deg)}
+  .strap.r{transform:rotate(13deg)}
+  .strap b{
+    writing-mode:vertical-rl;transform:rotate(180deg);color:#fff;font-size:15px;letter-spacing:3px;
+    white-space:nowrap;text-shadow:0 1px 2px #000;padding:14px 0;font-family:Arial Black,Arial,sans-serif;
+  }
+
+  .clip{width:36px;height:50px;border-radius:6px 6px 10px 10px;margin-bottom:-22px;position:relative;z-index:5;
+    background:linear-gradient(90deg,#8d8d8d,#f2f2f2 45%,#9a9a9a);border:2px solid #666;box-shadow:0 4px 6px rgba(0,0,0,.35)}
+  .clip::after{content:"";position:absolute;left:50%;bottom:8px;width:16px;height:6px;margin-left:-8px;border-radius:4px;background:#444}
+
+  .card{
+    position:relative;width:min(290px,80vw);background:#fff;border-radius:18px;overflow:hidden;cursor:pointer;
+    border:3px solid #0b3c91;box-shadow:0 18px 35px rgba(0,0,0,.35);
+    transition:transform .2s;user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  .card:hover{transform:scale(1.04) rotate(1.5deg)}
+  .card:active{transform:scale(.97)}
+  .head{background:linear-gradient(#0b3c91,#1e63d6);color:#fff;text-align:center;padding:26px 8px 9px;position:relative}
+  .slot{position:absolute;top:9px;left:50%;width:62px;height:11px;margin-left:-31px;border-radius:8px;background:#06214f;box-shadow:inset 0 2px 3px #000}
+  .head h2{font-family:Arial Black,Arial,sans-serif;font-size:19px;letter-spacing:1px}
+  .head small{font-family:Arial,sans-serif;font-size:10px;opacity:.9;letter-spacing:2px}
+  .body{padding:14px 14px 8px;text-align:center;font-family:Arial,sans-serif}
+  .photo{width:150px;height:175px;margin:0 auto 10px;border:4px solid #0b3c91;border-radius:12px;overflow:hidden;background:#dbe8ff;position:relative}
+  .photo img{width:100%;height:100%;object-fit:cover;display:block}
+  .ph{display:none;position:absolute;inset:0;place-items:center;font-size:12px;color:#0b3c91;font-weight:bold;padding:8px}
+  .ph i{display:block;font-size:50px;font-style:normal}
+  .name{font-family:Arial Black,Arial,sans-serif;font-size:24px;color:#0b3c91;letter-spacing:2px}
+  .dept{font-size:11px;color:#555;margin:2px 0 8px}
+  .rows{text-align:left;font-size:12px;line-height:1.75;border-top:2px dashed #c6d6f5;padding-top:6px}
+  .rows span{font-weight:bold;color:#0b3c91}
+  .barcode{height:30px;margin:8px 0 6px;background:repeating-linear-gradient(90deg,#000 0 2px,#fff 2px 4px,#000 4px 5px,#fff 5px 9px,#000 9px 12px,#fff 12px 13px)}
+  .stamp{position:absolute;right:-14px;top:150px;transform:rotate(18deg);border:3px solid #1aa84a;color:#1aa84a;font-family:Arial Black,Arial,sans-serif;
+    font-size:12px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.85);animation:pulse 1.6s infinite}
+  @keyframes pulse{50%{transform:rotate(18deg) scale(1.12)}}
+  .holo{position:absolute;left:10px;bottom:48px;width:34px;height:34px;border-radius:50%;
+    background:conic-gradient(#ff6ec7,#ffe14d,#4dffb8,#4db8ff,#ff6ec7);animation:spin 3s linear infinite;opacity:.85}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* hint */
+  .hint{margin-top:22px;background:#fff;border:3px solid #111;border-radius:30px;padding:10px 22px;font-size:20px;font-weight:bold;
+    animation:bounce 1s infinite;box-shadow:5px 5px 0 #111;text-align:center}
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+  /* toast captions */
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) scale(.9);background:#111;color:#fff;padding:12px 22px;border-radius:16px;
+    font-size:18px;z-index:60;opacity:0;transition:.25s;text-align:center;max-width:90vw;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) scale(1)}
+  .skip{position:fixed;right:14px;bottom:20px;z-index:61;display:none;background:#ffe14d;border:3px solid #111;border-radius:14px;padding:8px 14px;font:bold 14px inherit;font-family:inherit;cursor:pointer;box-shadow:3px 3px 0 #111}
+
+  canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:70}
+
+  /* video overlay */
+  .overlay{position:fixed;inset:0;background:rgba(10,10,25,.93);z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:14px}
+  .overlay.open{display:flex;animation:zoom .5s}
+  @keyframes zoom{from{transform:scale(.3) rotate(-8deg);opacity:0}}
+  .overlay h3{color:#ffe14d;font-size:22px;text-align:center}
+  .overlay video{max-width:94vw;max-height:68vh;border-radius:14px;border:4px solid #ff6ec7;box-shadow:0 0 35px #ff6ec7;background:#000}
+  .vmsg{color:#fff;font-size:14px;display:none}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .btns button{background:#fff;border:3px solid #111;border-radius:14px;padding:8px 16px;font-family:inherit;font-weight:bold;font-size:15px;cursor:pointer;box-shadow:3px 3px 0 #ff6ec7}
+  #skip{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:10;font:inherit;font-weight:600;font-size:15px;color:#3a1250;text-decoration:none;background:linear-gradient(135deg,#ffd166,#ff6fb5);border-radius:999px;padding:9px 18px;box-shadow:0 4px 0 #8a2d73,0 0 18px rgba(255,111,181,.5)}
+#skip:active{transform:translateY(3px);box-shadow:0 1px 0 #8a2d73}
+#skip:focus-visible{outline:3px solid #fff;outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div class="ticker"><span>🚨 BREAKING: Aditya officially a year older, has reached 75% attendance &nbsp;•&nbsp; Pasta reported missing from the canteen &nbsp;•&nbsp; 😴 Student found sleeping in 8 AM class, claims “I was meditating” &nbsp;•&nbsp; 🎂 Cake is on its way (maybe) &nbsp;•&nbsp; 📚 Exams: Not today, thank you</span></div>
+
+<div class="stage">
+  <div class="swing" id="swing">
+    <div class="straps">
+      <div class="strap l"><b>SRM UNIVERSITY ★ SRM UNIVERSITY ★ SRM UNIVERSITY ★ SRM UNIVERSITY ★ SRM UNIVERSITY ★ SRM UNIVERSITY</b></div>
+      <div class="strap r"><b>SRM UNIVERSITY ★ SRM UNIVERSITY ★ SRM UNIVERSITY ★ SRM UNIVERSITY ★ SRM UNIVERSITY ★ SRM UNIVERSITY</b></div>
+    </div>
+    <div class="clip"></div>
+
+    <div class="card" id="card" role="button" tabindex="0" aria-label="Click on ID card">
+      <div class="head">
+        <div class="slot"></div>
+        <h2>SRM UNIVERSITY</h2>
+        <small>IDENTITY CARD</small>
+      </div>
+      <div class="body">
+        <div class="photo">
+          <img id="pic" alt="Aditya">
+          <div class="ph" id="ph"><div><i>🧑‍🎓</i>Put photo.jpg in this folder</div></div>
+        </div>
+        <div class="name" id="nm">ADITYA</div>
+        <div class="dept">B.Tech • Dept. of Professional छिनरई</div>
+        <div class="rows">
+          <div><span>Reg No:</span> RA26-🤪-276</div>
+          <div><span>Blood Group:</span> No blood remaining.</div>
+          <div><span>Attendance:</span> Bhaad me jae</div>
+          <div><span>Valid till:</span> Today</div>
+        </div>
+        <div class="barcode"></div>
+      </div>
+      <div class="holo"></div>
+      
+    </div>
+  </div>
+
+  <div class="hint" id="hint">👆 Click on ID card!</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<button class="skip" id="skip">Skip to video ⏭</button>
+<canvas id="fx"></canvas>
+
+<div class="overlay" id="overlay">
+  <h3>🎬 Now Showing: Special Premiere 🍿</h3>
+  <video id="vid" controls playsinline></video>
+  <div class="vmsg" id="vmsg">Video not found. Put <b>video.mp4</b> in this folder 🙈</div>
+  <div class="btns">
+    <button id="replay">🔁 Replay</button>
+    <button id="back">↩ Back to ID card</button>
+  </div>
+</div>
+
+<script>
+  // ====== CHANGE THESE FILE NAMES IF YOURS ARE DIFFERENT ======
+  const CONFIG = { photo: 'pht41.jpeg', track: 'track.mp3', video: 'video.mp4' };
+  // ============================================================
+
+  const $ = id => document.getElementById(id);
+  const card = $('card'), swing = $('swing'), toast = $('toast'), skip = $('skip');
+  const pic = $('pic'), ph = $('ph'), overlay = $('overlay'), vid = $('vid');
+
+  pic.onerror = () => { pic.style.display = 'none'; ph.style.display = 'grid'; };
+  pic.src = CONFIG.photo;
+
+  /* floating emojis */
+  const em = ['🎂','🎈','🍕','📚','☕','😴','🎉','🍔','🎓','🥳','🍰','🎁'];
+  setInterval(() => {
+    const s = document.createElement('span');
+    s.className = 'floaty';
+    s.textContent = em[Math.floor(Math.random()*em.length)];
+    s.style.left = Math.random()*95 + 'vw';
+    s.style.animationDuration = (6 + Math.random()*6) + 's';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 12500);
+  }, 700);
+
+  /* confetti */
+  const cv = $('fx'), cx = cv.getContext('2d');
+  let parts = [], raf = null;
+  function size(){ cv.width = innerWidth; cv.height = innerHeight; }
+  addEventListener('resize', size); size();
+  function burst(n = 140){
+    const x = innerWidth/2, y = innerHeight/2.4;
+    for (let i=0;i<n;i++){
+      const a = Math.random()*Math.PI*2, v = 4 + Math.random()*9;
+      parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-4,r:4+Math.random()*5,c:`hsl(${Math.random()*360},90%,60%)`,life:110+Math.random()*50,rot:Math.random()*6});
+    }
+    if (!raf) loop();
+  }
+  function loop(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    parts = parts.filter(p => p.life-- > 0);
+    parts.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += .22; p.vx *= .99; p.rot += .15;
+      cx.save(); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillStyle = p.c;
+      cx.fillRect(-p.r,-p.r/2,p.r*2,p.r); cx.restore();
+    });
+    raf = parts.length ? requestAnimationFrame(loop) : null;
+    if (!parts.length) cx.clearRect(0,0,cv.width,cv.height);
+  }
+
+  /* captions */
+  const lines = [
+    '🔍 Scanning ID card…',
+    '📉 Attendance: 12%… wow.',
+    '✅ Coolness verified. Barely.',
+    '🍕 Checking pizza records…',
+    '🕺 Everybody dance, it’s a birthday!',
+    '🎁 Loading something special…',
+    '🤫 Don’t tell the professors.'
+  ];
+  let ci = 0, capTimer = null, toastT = null;
+  function say(t){
+    toast.textContent = t; toast.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  /* sequence */
+  let running = false, fallback = null;
+  const audio = new Audio(CONFIG.track);
+  audio.preload = 'auto';
+
+  function start(){
+    if (running) return;
+    running = true;
+    $('hint').style.display = 'none';
+    swing.classList.add('dance');
+    skip.style.display = 'block';
+    burst(); ci = 0; say(lines[ci++]);
+    capTimer = setInterval(() => { say(lines[ci % lines.length]); ci++; if (ci % 3 === 0) burst(70); }, 2300);
+
+    audio.currentTime = 0;
+    audio.play().catch(() => { fallback = setTimeout(openVideo, 4000); });
+  }
+  audio.addEventListener('ended', openVideo);
+  audio.addEventListener('error', () => { if (running && !fallback) fallback = setTimeout(openVideo, 4000); });
+
+  function stopSequence(){
+    clearInterval(capTimer); clearTimeout(fallback); fallback = null;
+    audio.pause(); skip.style.display = 'none';
+    toast.classList.remove('show'); swing.classList.remove('dance');
+  }
+
+  function openVideo(){
+    if (overlay.classList.contains('open')) return;
+    stopSequence();
+    burst(200);
+    overlay.classList.add('open');
+    $('vmsg').style.display = 'none';
+    vid.onerror = () => { $('vmsg').style.display = 'block'; };
+    vid.src = CONFIG.video;
+    vid.currentTime = 0;
+    vid.play().catch(() => {});
+  }
+
+  function closeVideo(){
+    vid.pause(); overlay.classList.remove('open');
+    running = false; $('hint').style.display = '';
+  }
+
+  card.addEventListener('click', start);
+  card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); start(); } });
+  skip.addEventListener('click', openVideo);
+  $('replay').addEventListener('click', () => { vid.currentTime = 0; vid.play(); });
+  $('back').addEventListener('click', closeVideo);
+</script>
+<a id="skip" href="page5.html">Next page ➜</a>
+</body>
+</html>

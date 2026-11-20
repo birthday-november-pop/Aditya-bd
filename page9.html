@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Memory Train</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Figtree:wght@400;500;600&family=Gloock&display=swap" rel="stylesheet">
+<style>
+:root{
+  --indigo:#151a40; --plum:#4b2c5f; --ember:#f2a65a; --rose:#ec7f8e;
+  --paper:#f7f0e4; --ink:#241a33; --glass:rgba(21,26,64,.66);
+  --display:'Gloock',Georgia,'Times New Roman',serif;
+  --hand:'Caveat','Segoe Script','Bradley Hand',cursive;
+  --ui:'Figtree',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--indigo);overflow:hidden;font-family:var(--ui);color:var(--paper);-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+:focus-visible{outline:2px solid var(--ember);outline-offset:3px}
+#app{position:fixed;inset:0}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* map life */
+.star{animation:twinkle 4s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+.cloud{animation:cloud 46s ease-in-out infinite alternate}
+@keyframes cloud{from{transform:translateX(-50px)}to{transform:translateX(50px)}}
+.ff{animation:ff 7s ease-in-out infinite}
+@keyframes ff{0%,100%{transform:translate(0,0);opacity:.1}50%{transform:translate(var(--dx),var(--dy));opacity:1}}
+.lamp{animation:lamp 3.6s ease-in-out infinite}
+@keyframes lamp{0%,100%{opacity:.8}50%{opacity:1}}
+.win{animation:win 5s ease-in-out infinite}
+@keyframes win{0%,100%{opacity:.85}50%{opacity:1}}
+#trainG{cursor:pointer}
+.pin{transform-box:fill-box;transform-origin:50% 100%;transform:scale(0);transition:transform .7s cubic-bezier(.3,1.5,.5,1);cursor:pointer}
+.pin.in{transform:scale(1)}
+.pin:hover .pinring{stroke:var(--ember)}
+.pinring{transition:stroke .2s}
+
+/* shading over the map while photos are showing */
+#vignette{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .9s;
+  background:radial-gradient(ellipse at 50% 48%,rgba(14,10,36,.28) 0%,rgba(14,10,36,.8) 100%)}
+#vignette.on{opacity:1}
+
+/* polaroids */
+#stage{position:absolute;inset:0;pointer-events:none;perspective:1100px;transform:translateY(-4vh)}
+.polaroid{position:absolute;left:50%;top:50%;width:min(78vw,340px);--x:0px;--y:0px;--r:0deg;--s:1;--tr:-3deg;
+  transform:translate(-50%,-50%) translate(var(--x),var(--y)) rotate(var(--r)) scale(var(--s));
+  transition:transform .8s cubic-bezier(.55,0,.25,1),opacity .8s,filter .7s;
+  animation:drop 1s cubic-bezier(.2,.85,.25,1) backwards;pointer-events:auto;cursor:pointer;margin:0}
+.polaroid.old{--s:.93;filter:brightness(.74)}
+.polaroid.fly{--s:.05;--r:0deg;opacity:0;filter:none}
+@keyframes drop{
+  0%{opacity:0;transform:translate(-50%,-50%) translate(var(--x),calc(var(--y) - 90px)) rotate(calc(var(--r) - 9deg)) scale(.9)}
+  100%{opacity:1;transform:translate(-50%,-50%) translate(var(--x),var(--y)) rotate(var(--r)) scale(1)}}
+.card{position:relative;background:var(--paper);padding:12px 12px 8px;border-radius:3px;color:var(--ink);
+  box-shadow:0 22px 44px rgba(5,3,20,.55),0 2px 5px rgba(0,0,0,.3);transition:transform .18s ease-out;transform-style:preserve-3d}
+.pic{position:relative;overflow:hidden;background:#cfc3b2;width:100%;max-height:52vh;aspect-ratio:1}
+.pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;animation:develop 2s ease-out .3s backwards;-webkit-user-drag:none;user-select:none}
+@keyframes develop{0%{filter:brightness(.15) saturate(0) blur(7px)}60%{filter:brightness(.8) saturate(.5) blur(2px)}100%{filter:none}}
+.miss{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:18px;font:500 14px/1.4 var(--ui);color:#6b5b73;
+  background:repeating-linear-gradient(135deg,#d8cdbd 0 12px,#cfc3b2 12px 24px)}
+.miss u{text-decoration:none;font-weight:600;color:var(--plum)}
+.cap{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 4px 0;min-height:42px}
+.cap b{font:500 25px/1.1 var(--hand)}
+.cap i{font:500 12px var(--ui);font-style:normal;opacity:.55;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tape{position:absolute;top:-11px;left:50%;width:86px;height:22px;margin-left:-43px;background:rgba(242,166,90,.6);
+  transform:rotate(var(--tr));z-index:2;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.polaroid.static{position:relative;left:auto;top:auto;transform:rotate(var(--r));animation:none;cursor:default;width:min(80vw,380px)}
+
+/* top hud */
+#hud{position:absolute;left:0;right:0;top:0;padding:calc(14px + env(safe-area-inset-top,0px)) 18px 0;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:12px}
+.brand b{display:block;font:400 22px/1.1 var(--display);letter-spacing:.01em;text-shadow:0 2px 12px rgba(10,6,30,.6)}
+.brand span{display:block;font:500 13px var(--ui);opacity:.82;margin-top:4px;min-height:1.3em;text-shadow:0 1px 8px rgba(10,6,30,.7)}
+#compass{width:44px;height:44px;opacity:.7;flex:none}
+
+/* station banner */
+#banner{position:absolute;left:0;right:0;top:22%;text-align:center;pointer-events:none;opacity:0;transform:translateY(14px);transition:opacity .8s,transform .8s;padding:0 20px}
+#banner.show{opacity:1;transform:none}
+#banner small{display:block;font:500 15px var(--ui);opacity:.85;margin-bottom:8px;text-shadow:0 1px 10px rgba(10,6,30,.8)}
+#banner h2{font:400 clamp(34px,7vw,66px)/1.05 var(--display);text-shadow:0 4px 28px rgba(10,6,30,.85)}
+
+/* progress + controls */
+#dots{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));display:flex;gap:14px;pointer-events:none;transition:opacity .6s}
+#dots .grp{display:flex;gap:5px}
+#dots .dot{width:7px;height:7px;border-radius:50%;background:rgba(247,240,228,.22);transition:background .5s,transform .5s}
+#dots .dot.seen{background:var(--ember);transform:scale(1.15)}
+#controls{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:4px;padding:5px;border-radius:999px;
+  background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.13);transition:opacity .6s}
+#controls button{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;transition:background .2s,transform .15s}
+#controls button:hover{background:rgba(255,255,255,.12)}
+#controls button:active{transform:scale(.92)}
+#controls svg{width:22px;height:22px;fill:currentColor}
+body.done #controls,body.done #dots{opacity:0;pointer-events:none}
+
+/* intro + finale */
+.veil{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;transition:opacity .9s,visibility .9s;
+  background:radial-gradient(ellipse at 50% 50%,rgba(14,10,36,.35),rgba(14,10,36,.82));backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.veil.gone{opacity:0;visibility:hidden}
+.veil h1{font:400 clamp(44px,10vw,84px)/1 var(--display);text-shadow:0 6px 34px rgba(10,6,30,.8)}
+.veil p{max-width:36ch;margin:18px auto 0;font:400 17px/1.55 var(--ui);opacity:.92}
+.veil small{display:block;margin-top:18px;font:400 13px/1.5 var(--ui);opacity:.65}
+.primary{margin-top:28px;background:var(--ember);color:var(--ink);font:600 16px var(--ui);padding:14px 30px;border-radius:999px;transition:transform .2s,box-shadow .2s;box-shadow:0 8px 28px rgba(242,166,90,.35)}
+.primary:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(242,166,90,.45)}
+.ghost{padding:13px 24px;border-radius:999px;border:1px solid rgba(247,240,228,.35);font:500 15px var(--ui);transition:background .2s}
+.ghost:hover{background:rgba(255,255,255,.1)}
+
+#finale{position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));width:min(92vw,560px);text-align:center;padding:24px 26px 26px;border-radius:22px;
+  background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);
+  opacity:0;pointer-events:none;transform:translate(-50%,24px);transition:opacity 1s,transform 1s}
+#finale.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+#finale h2{font:400 clamp(30px,6vw,44px)/1.1 var(--display)}
+#finale p{margin:12px auto 0;max-width:40ch;font:400 16px/1.55 var(--ui);opacity:.92}
+#finale .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+#finale .primary{margin-top:0;padding:13px 24px;font-size:15px}
+#finale .next{display:inline-flex;align-items:center;padding:13px 24px;border-radius:999px;
+  background:var(--rose);color:var(--ink);font:600 15px var(--ui);text-decoration:none;
+  box-shadow:0 8px 28px rgba(236,127,142,.35);transition:transform .2s,box-shadow .2s}
+#finale .next:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(236,127,142,.45)}
+
+/* album */
+#album{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,7,28,.86);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  opacity:0;visibility:hidden;transition:opacity .4s,visibility .4s;z-index:20}
+#album.open{opacity:1;visibility:visible}
+#album .holder{display:flex;flex-direction:column;align-items:center;gap:18px;padding:0 12px}
+#album .holder .polaroid{animation:albumIn .5s ease-out backwards}
+@keyframes albumIn{from{opacity:0;transform:translateY(14px) rotate(var(--r))}}
+#album .nav{display:flex;gap:12px;align-items:center}
+#album .nav button{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:22px;transition:background .2s}
+#album .nav button:hover{background:rgba(255,255,255,.2)}
+#album .nav span{font:500 14px var(--ui);opacity:.75;min-width:5ch;text-align:center;font-variant-numeric:tabular-nums}
+#album .close{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:16px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);font-size:24px}
+
+#fx{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
+#toast{position:absolute;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translate(-50%,-10px);background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  padding:10px 18px;border-radius:999px;font:500 14px var(--ui);opacity:0;pointer-events:none;transition:opacity .4s,transform .4s;max-width:90vw;text-align:center;z-index:30}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  .star,.cloud,.ff,.lamp,.win{animation:none!important}
+  .polaroid{animation-duration:.01s}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <svg id="map" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 650" preserveAspectRatio="xMidYMid slice" aria-label="Illustrated map with a train travelling between five stations">
+    <defs>
+      <linearGradient id="sky" gradientUnits="userSpaceOnUse" x1="0" y1="-260" x2="0" y2="300">
+        <stop offset="0" stop-color="#0e1036"/><stop offset=".38" stop-color="#2a2262"/><stop offset=".66" stop-color="#6d3c78"/><stop offset=".86" stop-color="#d4708a"/><stop offset="1" stop-color="#f2a65a"/>
+      </linearGradient>
+      <linearGradient id="gnd" gradientUnits="userSpaceOnUse" x1="0" y1="280" x2="0" y2="760">
+        <stop offset="0" stop-color="#254b5b"/><stop offset="1" stop-color="#122838"/>
+      </linearGradient>
+      <linearGradient id="water" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b6f99"/><stop offset="1" stop-color="#27507a"/></linearGradient>
+      <radialGradient id="glow"><stop offset="0" stop-color="#ffd58a" stop-opacity=".95"/><stop offset=".4" stop-color="#ffc06a" stop-opacity=".35"/><stop offset="1" stop-color="#ffc06a" stop-opacity="0"/></radialGradient>
+      <radialGradient id="moonglow"><stop offset="0" stop-color="#fff3d6" stop-opacity=".5"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/></radialGradient>
+      <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffe3a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffe3a0" stop-opacity="0"/></linearGradient>
+    </defs>
+  </svg>
+
+  <div id="vignette"></div>
+  <div id="stage"></div>
+  <canvas id="fx"></canvas>
+
+  <header id="hud">
+    <div class="brand"><b>Memory Train</b><span id="where"></span></div>
+    <svg id="compass" viewBox="0 0 44 44" aria-hidden="true">
+      <circle cx="22" cy="22" r="19" fill="none" stroke="#f7f0e4" stroke-opacity=".5" stroke-width="1"/>
+      <path d="M22 7l4 15-4 -3-4 3z" fill="#ec7f8e"/><path d="M22 37l-4-15 4 3 4-3z" fill="#f7f0e4" fill-opacity=".55"/>
+      <text x="22" y="5.5" text-anchor="middle" font-size="7" fill="#f7f0e4" font-family="Figtree,sans-serif">N</text>
+    </svg>
+  </header>
+
+  <div id="banner" aria-live="polite"><small id="bnSmall"></small><h2 id="bnName"></h2></div>
+
+  <div id="dots" aria-hidden="true"></div>
+  <nav id="controls" aria-label="Journey controls">
+    <button id="btnPause" aria-label="Pause the journey" title="Pause (Space)"></button>
+    <button id="btnSkip" aria-label="Go to the next station" title="Next station (→)"></button>
+    <button id="btnSound" aria-label="Mute the music" title="Music (M)"></button>
+  </nav>
+
+  <div id="finale">
+    <h2 id="finTitle"></h2>
+    <p id="finMsg"></p>
+    <div class="row">
+      <button class="primary" id="btnAgain">Ride again</button>
+      <button class="ghost" id="btnBrowse">Look through the photos</button>
+      <a class="next" href="page10.html">Next page</a>
+    </div>
+  </div>
+
+  <div id="album" aria-modal="true" role="dialog" aria-label="Photo album">
+    <button class="close" id="albumClose" aria-label="Close album">&times;</button>
+    <div class="holder">
+      <div id="albumCard"></div>
+      <div class="nav">
+        <button id="albumPrev" aria-label="Previous photo">&#8249;</button>
+        <span id="albumCount"></span>
+        <button id="albumNext" aria-label="Next photo">&#8250;</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="veil" id="intro">
+    <div>
+      <h1 id="introTitle">Memory Train</h1>
+      <p>Five stations, twenty memories, one slow ride through them. Turn up.</p>
+      <button class="primary" id="btnBoard">Board the train</button>
+      <small>Tap a photo to move ahead. Tap the train for a whistle.</small>
+    </div>
+  </div>
+  <div id="toast" role="status"></div>
+</div>
+<audio id="song" loop preload="auto"></audio>
+
+<script>
+(() => {
+'use strict';
+
+/* ===================== EDIT THESE ===================== */
+const CONFIG = {
+  name: 'Aditya',                 // your sister's name, shown in the final message
+  song: 'song.mp3',            // the mp3 you put in this folder
+  photoPrefix: 'pht9',         // photos are pht91 ... pht920 (.jpeg, .jpg, .png all work)
+  photoSeconds: 4,             // how long each photo stays
+  message: 'Every stop on this ride is a memory. Here’s to the next station, and every one after it.',
+  stations: [
+    { name: 'Station Number 1',    photos: [1, 2, 3, 4] },
+    { name: 'Station Number 2',   photos: [5, 6, 7, 8] },
+    { name: 'Station Number 3',         photos: [9, 10, 11, 12] },
+    { name: 'Station Number 4', photos: [13, 14, 15, 16] },
+    { name: 'Station Number 5',                 photos: [17, 18, 19, 20] }
+  ],
+  captions: {
+    // optional handwritten caption under any photo, e.g.  7: 'That one trip'
+    // if empty, the station name is shown
+  }
+};
+/* ====================================================== */
+
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+const svg = $('#map');
+const el = (tag, attrs, parent) => {
+  const e = document.createElementNS(NS, tag);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+let _s = 11;
+const rnd = () => (_s = (_s * 16807) % 2147483647) / 2147483647;
+const rr = (a, b) => a + (b - a) * rnd();
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const stations = CONFIG.stations;
+const TOTAL_PHOTOS = stations.reduce((a, s) => a + s.photos.length, 0);
+
+/* ---------------- world layers ---------------- */
+const L = {};
+['sky','far','clouds','m1','m2','hills','ground','scenery','track','stations','smoke','train','labels'].forEach(id => { L[id] = el('g', { id: 'L-' + id }, svg); });
+const W0 = -900, W1 = 2200;
+
+el('rect', { x: W0, y: -700, width: W1 - W0, height: 1100, fill: 'url(#sky)' }, L.sky);
+
+for (let i = 0; i < 110; i++) {
+  const c = el('circle', { cx: rr(-600, 1900), cy: rr(-420, 190), r: rr(.5, 1.5), fill: '#fff7e6', 'class': 'star' }, L.far);
+  c.style.animationDelay = rr(0, 5) + 's'; c.style.animationDuration = rr(2.5, 6) + 's';
+}
+el('circle', { cx: 990, cy: 70, r: 90, fill: 'url(#moonglow)' }, L.far);
+el('circle', { cx: 990, cy: 70, r: 26, fill: '#fbeed3' }, L.far);
+el('circle', { cx: 981, cy: 63, r: 5, fill: '#e9d6b4', opacity: .6 }, L.far);
+el('circle', { cx: 998, cy: 79, r: 3.4, fill: '#e9d6b4', opacity: .6 }, L.far);
+
+for (let i = 0; i < 7; i++) {
+  const g = el('g', { 'class': 'cloud', opacity: .26 }, L.clouds);
+  const cx = rr(-500, 1800), cy = rr(10, 170);
+  g.style.animationDelay = (-rr(0, 40)) + 's';
+  [[0, 0, 60, 11], [-34, 6, 40, 9], [38, 5, 44, 9]].forEach(a => el('ellipse', { cx: cx + a[0], cy: cy + a[1], rx: a[2], ry: a[3], fill: '#f0a0b6' }, g));
+}
+
+function ridge(layer, base, amp, step, color, smooth) {
+  let d = `M${W0} 700 L${W0} ${base}`;
+  for (let x = W0; x < W1; x += step) {
+    if (smooth) d += ` Q${x + step / 2} ${(base - rr(.3, 1) * amp).toFixed(1)} ${x + step} ${(base - rr(0, .4) * amp).toFixed(1)}`;
+    else d += ` L${x + step} ${(base - rr(.15, 1) * amp).toFixed(1)}`;
+  }
+  d += ` L${W1} 700 Z`;
+  el('path', { d, fill: color }, layer);
+}
+ridge(L.m1, 252, 130, 80, '#3a3374', false);
+ridge(L.m2, 264, 80, 120, '#2d2c63', true);
+ridge(L.hills, 280, 40, 150, '#213a58', true);
+
+let gd = `M${W0} 900 L${W0} 290`;
+for (let x = W0; x <= W1; x += 60) gd += ` L${x} ${(288 + 4 * Math.sin(x / 90)).toFixed(1)}`;
+gd += ` L${W1} 900 Z`;
+el('path', { d: gd, fill: 'url(#gnd)' }, L.ground);
+
+/* patchwork fields */
+['#2a5a5c', '#27525a', '#2d5d57', '#23495c'].forEach((col, k) => {
+  for (let i = 0; i < 5; i++) {
+    const x = rr(-500, 1700), y = rr(320, 690), w = rr(60, 150), h = rr(26, 50), sk = rr(-18, 18);
+    el('polygon', { points: `${x},${y} ${x + w},${y + sk} ${x + w - 8},${y + h + sk} ${x - 6},${y + h}`, fill: col, opacity: .55 }, L.ground);
+  }
+});
+
+/* ---------------- the track ---------------- */
+const d = 'M-300 520 L60 520 C160 520 200 430 300 430 S430 540 540 520 S680 380 780 400 S900 540 1000 500 S1120 420 1190 400 L1320 380';
+const LEAD = 360, EXT = Math.hypot(130, -20);
+const pathEl = el('path', { d, fill: 'none' }, L.track);
+const TOTAL = pathEl.getTotalLength();
+const MAIN = TOTAL - LEAD - EXT;
+const pt = s => pathEl.getPointAtLength(clamp(s, 0, TOTAL));
+const ang = s => { const a = pt(s - 4), b = pt(s + 4); return Math.atan2(b.y - a.y, b.x - a.x); };
+const stationFr = [.08, .30, .52, .74, .95];
+const stationS = stations.map((_, i) => LEAD + MAIN * (stationFr[i] != null ? stationFr[i] : (i + .5) / stations.length));
+const stationP = stationS.map(pt);
+
+/* river, bridge, lake: drawn under the track */
+const rv = pt(LEAD + MAIN * .41);
+const river = el('path', { d: `M${rv.x - 150} 230 Q${rv.x - 30} ${rv.y - 70} ${rv.x} ${rv.y} T${rv.x + 120} 780`, fill: 'none', stroke: 'url(#water)', 'stroke-width': 15, 'stroke-linecap': 'round', opacity: .95 }, L.ground);
+el('path', { d: river.getAttribute('d'), fill: 'none', stroke: '#9cc4e4', 'stroke-width': 2, 'stroke-dasharray': '10 16', opacity: .35, 'stroke-linecap': 'round' }, L.ground);
+el('ellipse', { cx: 200, cy: 640, rx: 100, ry: 30, fill: 'url(#water)' }, L.ground);
+el('ellipse', { cx: 190, cy: 634, rx: 60, ry: 12, fill: '#9cc4e4', opacity: .18 }, L.ground);
+[[-120, 340], [500, 640], [1500, 360]].forEach(a => {
+  el('path', { d: `M${a[0]} ${a[1]} q 90 -26 180 6 t 190 -4`, fill: 'none', stroke: '#c9a27a', 'stroke-width': 2, 'stroke-dasharray': '2 7', opacity: .3, 'stroke-linecap': 'round' }, L.ground);
+});
+
+/* things to keep scenery away from */
+const avoid = [];
+for (let s = 0; s <= TOTAL; s += 12) { const p = pt(s); avoid.push([p.x, p.y, 46]); }
+const rl = river.getTotalLength();
+for (let s = 0; s <= rl; s += 12) { const p = river.getPointAtLength(s); avoid.push([p.x, p.y, 26]); }
+stationP.forEach(p => avoid.push([p.x, p.y + 30, 80]));
+[[200, 640, 120], [130, 640, 60], [270, 640, 60]].forEach(a => avoid.push(a));
+const blocked = (x, y) => avoid.some(a => (x - a[0]) * (x - a[0]) + (y - a[1]) * (y - a[1]) < a[2] * a[2]);
+
+for (let i = 0; i < 150; i++) {
+  const x = rr(-600, 1800), y = rr(298, 720);
+  if (blocked(x, y)) continue;
+  const sc = rr(.7, 1.35);
+  if (rnd() < .72) {
+    el('path', { d: 'M0 -32 L-8 -15 L-4.5 -15 L-10 -2 L-2 -2 L-2 3 L2 3 L2 -2 L10 -2 L4.5 -15 L8 -15 Z', fill: ['#16394a', '#1a4452', '#123241'][(rnd() * 3) | 0], transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${sc.toFixed(2)})` }, L.scenery);
+  } else {
+    const g = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${sc.toFixed(2)})` }, L.scenery);
+    el('rect', { x: -1.5, y: -8, width: 3, height: 9, fill: '#2a2438' }, g);
+    el('circle', { cy: -15, r: 10, fill: '#2d5a55' }, g);
+    el('circle', { cx: -4, cy: -18, r: 5, fill: '#3a6b60', opacity: .6 }, g);
+  }
+}
+let houses = 0;
+for (let tries = 0; tries < 200 && houses < 16; tries++) {
+  const x = rr(-500, 1700), y = rr(310, 700);
+  if (blocked(x, y)) continue;
+  houses++;
+  const g = el('g', { transform: `translate(${x.toFixed(1)} ${y.toFixed(1)})` }, L.scenery);
+  el('rect', { x: -9, y: -12, width: 18, height: 12, fill: '#352a4a' }, g);
+  el('polygon', { points: '-11,-12 0,-22 11,-12', fill: '#7a2e4d' }, g);
+  const w = el('rect', { x: -3, y: -9, width: 5.5, height: 5.5, fill: '#ffc66d', 'class': 'win' }, g);
+  w.style.animationDelay = (-rr(0, 5)) + 's';
+}
+for (let i = 0; i < 26; i++) {
+  const x = rr(-300, 1500), y = rr(310, 690);
+  const f = el('circle', { cx: x, cy: y, r: 5, fill: 'url(#glow)', 'class': 'ff' }, L.scenery);
+  f.style.setProperty('--dx', rr(-28, 28) + 'px'); f.style.setProperty('--dy', rr(-24, 12) + 'px');
+  f.style.animationDuration = rr(5, 10) + 's'; f.style.animationDelay = (-rr(0, 8)) + 's';
+}
+
+/* little bridge over the river */
+{
+  const a = ang(LEAD + MAIN * .41);
+  const g = el('g', { transform: `translate(${rv.x} ${rv.y}) rotate(${a * 180 / Math.PI})` }, L.track);
+  el('rect', { x: -24, y: -8, width: 48, height: 16, fill: '#4a3b56' }, g);
+  el('line', { x1: -24, y1: -8, x2: 24, y2: -8, stroke: '#9a86a8', 'stroke-width': 1.5 }, g);
+  el('line', { x1: -24, y1: 8, x2: 24, y2: 8, stroke: '#9a86a8', 'stroke-width': 1.5 }, g);
+}
+/* rails */
+el('path', { d, fill: 'none', stroke: '#6b5b73', 'stroke-width': 9, 'stroke-linejoin': 'round' }, L.track);
+el('path', { d, fill: 'none', stroke: '#2b2030', 'stroke-width': 11, 'stroke-dasharray': '2.5 6.5' }, L.track);
+el('path', { d, fill: 'none', stroke: '#e6dccd', 'stroke-width': 2 }, L.track);
+const travelled = el('path', { d, fill: 'none', stroke: '#f2a65a', 'stroke-width': 3, opacity: .9, 'stroke-dasharray': '0 100000' }, L.track);
+/* ---------------- stations ---------------- */
+const pins = [];
+stationP.forEach((p, i) => {
+  const a = ang(stationS[i]);
+  const g = el('g', { transform: `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})` }, L.stations);
+  const pf = el('g', { transform: `rotate(${a * 180 / Math.PI})` }, g);
+  el('rect', { x: -50, y: 3, width: 100, height: 7, rx: 2, fill: '#4a3b56' }, pf);
+  el('rect', { x: -50, y: 3, width: 100, height: 2.5, rx: 1, fill: '#8a7898' }, pf);
+  const b = el('g', { transform: 'translate(0 32)' }, g);
+  el('rect', { x: -26, y: 0, width: 52, height: 22, fill: '#3a2d4f' }, b);
+  el('polygon', { points: '-31,0 0,-15 31,0', fill: '#7a2e4d' }, b);
+  el('circle', { cy: -5, r: 4, fill: 'none', stroke: '#f7f0e4', 'stroke-width': 1 }, b);
+  el('rect', { x: -4, y: 8, width: 8, height: 14, fill: '#1c1429' }, b);
+  [-19, 11].forEach(x => el('rect', { x, y: 7, width: 8, height: 8, fill: '#ffc66d', 'class': 'win' }, b));
+  const lx = 60;
+  el('line', { x1: lx, y1: 8, x2: lx, y2: -28, stroke: '#2a1f33', 'stroke-width': 2 }, g);
+  el('circle', { cx: lx, cy: -30, r: 26, fill: 'url(#glow)', 'class': 'lamp' }, g);
+  el('circle', { cx: lx, cy: -30, r: 3, fill: '#fff2c4' }, g);
+
+  const lab = el('g', { transform: `translate(${p.x.toFixed(1)} ${(p.y - 66).toFixed(1)})` }, L.labels);
+  const wpx = stations[i].name.length * 7.6 + 26;
+  el('rect', { x: -wpx / 2, y: -12, width: wpx, height: 24, rx: 12, fill: 'rgba(21,26,64,.8)', stroke: 'rgba(247,240,228,.3)' }, lab);
+  const t = el('text', { x: 0, y: 4.5, 'text-anchor': 'middle', fill: '#f7f0e4', 'font-size': 12.5, 'font-weight': 600, 'font-family': 'Figtree,system-ui,sans-serif' }, lab);
+  t.textContent = stations[i].name;
+});
+
+/* ---------------- the train ---------------- */
+const spinners = [];
+function wheel(parent, cx, r) {
+  const w = el('g', { transform: `translate(${cx} ${-r})` }, parent);
+  const s = el('g', {}, w);
+  el('circle', { r, fill: '#2a1f33', stroke: '#e8b25f', 'stroke-width': 1.2 }, s);
+  el('line', { x1: -r + 1.5, y1: 0, x2: r - 1.5, y2: 0, stroke: '#e8b25f', 'stroke-width': 1 }, s);
+  el('line', { x1: 0, y1: -r + 1.5, x2: 0, y2: r - 1.5, stroke: '#e8b25f', 'stroke-width': 1 }, s);
+  spinners.push({ s, r });
+}
+function makeLoco() {
+  const g = el('g', {});
+  el('polygon', { points: '28,-18 200,-64 200,28', fill: 'url(#beam)' }, g);
+  el('rect', { x: -31, y: -10, width: 60, height: 4, fill: '#2a1f33' }, g);
+  el('rect', { x: -4, y: -27, width: 31, height: 17, rx: 6, fill: '#8a3556' }, g);
+  el('rect', { x: 8, y: -27, width: 2.5, height: 17, fill: '#e8b25f' }, g);
+  el('rect', { x: -31, y: -37, width: 26, height: 27, fill: '#6a2745' }, g);
+  el('rect', { x: -34, y: -41, width: 32, height: 5, rx: 2, fill: '#2a1f33' }, g);
+  el('rect', { x: -27, y: -32, width: 14, height: 11, rx: 2, fill: '#ffd58a' }, g);
+  el('path', { d: 'M13 -27 L14.5 -35 L12 -39 L23 -39 L20.5 -35 L22 -27 Z', fill: '#2a1f33' }, g);
+  el('rect', { x: 12, y: -40, width: 11, height: 2, fill: '#e8b25f' }, g);
+  el('circle', { cx: 2, cy: -28, r: 4, fill: '#e8b25f' }, g);
+  el('polygon', { points: '29,-10 38,0 29,0', fill: '#2a1f33' }, g);
+  el('circle', { cx: 27, cy: -18, r: 3.2, fill: '#fff2c4' }, g);
+  el('line', { x1: -31, y1: -8, x2: -36, y2: -8, stroke: '#2a1f33', 'stroke-width': 2 }, g);
+  wheel(g, -19, 7); wheel(g, -2, 7); wheel(g, 15, 5);
+  return g;
+}
+function makeCar(color) {
+  const g = el('g', {});
+  el('rect', { x: -24, y: -30, width: 48, height: 22, rx: 3, fill: color }, g);
+  el('rect', { x: -26, y: -34, width: 52, height: 5, rx: 2, fill: '#2a1f33' }, g);
+  el('rect', { x: -24, y: -14, width: 48, height: 2, fill: '#e8b25f', opacity: .85 }, g);
+  el('rect', { x: -22, y: -8, width: 44, height: 3, fill: '#2a1f33' }, g);
+  for (let i = 0; i < 4; i++) {
+    const x = -19 + i * 10.5;
+    el('rect', { x, y: -26, width: 7, height: 9, rx: 1.5, fill: '#ffd58a', 'class': 'win' }, g).style.animationDelay = (-rr(0, 5)) + 's';
+    if (rnd() < .55) el('ellipse', { cx: x + 3.5, cy: -21.5, rx: 2.2, ry: 2.4, fill: '#5b3a4f', opacity: .8 }, g);
+  }
+  el('line', { x1: -24, y1: -8, x2: -29, y2: -8, stroke: '#2a1f33', 'stroke-width': 2 }, g);
+  el('line', { x1: 24, y1: -8, x2: 29, y2: -8, stroke: '#2a1f33', 'stroke-width': 2 }, g);
+  wheel(g, -15, 5); wheel(g, 15, 5);
+  return g;
+}
+const trainG = el('g', { id: 'trainG' }, L.train);
+const OFFS = [0, 63, 117, 171];
+const carColors = ['#d9788a', '#e3a857', '#6fa38e'];
+const cars = [makeLoco(), ...carColors.map(makeCar)];
+for (let i = cars.length - 1; i >= 0; i--) trainG.appendChild(cars[i]);
+
+/* ---------------- photos ---------------- */
+const PHOTOS = {};
+const EXTS = ['jpeg', 'jpg', 'png', 'JPG', 'JPEG', 'webp'];
+function loadPhoto(n) {
+  return new Promise(res => {
+    let i = 0;
+    const tryNext = () => {
+      if (i >= EXTS.length) { PHOTOS[n] = null; return res(); }
+      const src = `${CONFIG.photoPrefix}${n}.${EXTS[i++]}`;
+      const im = new Image();
+      im.onload = () => { PHOTOS[n] = { src, w: im.naturalWidth, h: im.naturalHeight }; res(); };
+      im.onerror = tryNext;
+      im.src = src;
+    };
+    tryNext();
+  });
+}
+const photosReady = Promise.all(stations.flatMap(s => s.photos).map(loadPhoto));
+
+function buildPolaroid(n, caption, count) {
+  const data = PHOTOS[n];
+  const f = document.createElement('figure');
+  f.className = 'polaroid';
+  const ar = data ? clamp(data.w / data.h, .8, 1.35) : 1;
+  f.innerHTML = '<div class="card"><i class="tape"></i><div class="pic"></div><div class="cap"><b></b><i></i></div></div>';
+  const pic = f.querySelector('.pic');
+  pic.style.aspectRatio = ar;
+  if (data) {
+    const im = new Image(); im.src = data.src; im.alt = caption; im.draggable = false; pic.appendChild(im);
+  } else {
+    pic.innerHTML = `<div class="miss"><span>Add <u>${CONFIG.photoPrefix}${n}.jpeg</u><br>to this folder</span></div>`;
+  }
+  f.querySelector('b').textContent = CONFIG.captions[n] || caption;
+  f.querySelector('.cap i').textContent = count;
+  const card = f.querySelector('.card');
+  f.addEventListener('pointermove', e => {
+    const r = card.getBoundingClientRect();
+    const dx = (e.clientX - (r.left + r.width / 2)) / r.width, dy = (e.clientY - (r.top + r.height / 2)) / r.height;
+    card.style.transform = `rotateY(${(dx * 10).toFixed(1)}deg) rotateX(${(-dy * 10).toFixed(1)}deg)`;
+  });
+  f.addEventListener('pointerleave', () => { card.style.transform = ''; });
+  return f;
+}
+
+/* ---------------- progress dots ---------------- */
+const dotsEl = $('#dots'); const dotFor = {};
+stations.forEach(s => {
+  const g = document.createElement('div'); g.className = 'grp';
+  s.photos.forEach(n => { const d = document.createElement('span'); d.className = 'dot'; g.appendChild(d); dotFor[n] = d; });
+  dotsEl.appendChild(g);
+});
+
+/* ---------------- state ---------------- */
+let head = LEAD + 20, prevHead = head, spin = 0, moving = false;
+let paused = false, nudge = false, skipTravel = false, skipPhotos = false, stopped = false;
+let camMode = 'overview', journeyId = 0, muted = false, started = false, albumOpen = false, pausedBefore = false;
+const START_HEAD = head;
+
+/* ---------------- audio ---------------- */
+const song = $('#song');
+song.src = CONFIG.song; song.volume = 0;
+song.addEventListener('error', () => toast(`Couldn’t find ${CONFIG.song}. Put your song in this folder.`));
+let ac = null;
+const audioCtx = () => ac || (ac = new (window.AudioContext || window.webkitAudioContext)());
+function tone(freqs, type, vol, dur, lp) {
+  if (muted) return;
+  try {
+    const c = audioCtx(), now = c.currentTime;
+    freqs.forEach(f => {
+      const o = c.createOscillator(), g = c.createGain(), flt = c.createBiquadFilter();
+      o.type = type; o.frequency.value = f; flt.type = 'lowpass'; flt.frequency.value = lp;
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(vol, now + .08);
+      g.gain.setValueAtTime(vol, now + dur * .5); g.gain.exponentialRampToValueAtTime(.0001, now + dur);
+      o.connect(flt); flt.connect(g); g.connect(c.destination); o.start(now); o.stop(now + dur + .05);
+    });
+  } catch (e) { /* audio is a bonus */ }
+}
+const horn = () => tone([233.1, 293.7], 'sawtooth', .045, 1.0, 900);
+const chime = () => { tone([659.25], 'sine', .05, 1.3, 4000); setTimeout(() => tone([880], 'sine', .04, 1.5, 4000), 220); };
+function fadeSong() {
+  const t0 = performance.now();
+  const step = () => { const k = Math.min(1, (performance.now() - t0) / 2500); song.volume = .75 * k; if (k < 1) requestAnimationFrame(step); };
+  step();
+}
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 4200); }
+
+/* ---------------- timing ---------------- */
+function wait(ms) {
+  return new Promise(res => {
+    let left = ms, last = performance.now();
+    const f = now => {
+      const dt = now - last; last = now;
+      if (!paused) left -= dt;
+      if (left <= 0 || nudge) { nudge = false; return res(); }
+      requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  });
+}
+function travel(from, to, dur, id) {
+  return new Promise(res => {
+    let t = 0, last = performance.now();
+    const f = now => {
+      if (id !== journeyId) return res();
+      const dt = now - last; last = now;
+      if (!paused) t += dt;
+      if (skipTravel) t = dur;
+      const k = Math.min(1, t / dur);
+      head = from + (to - from) * ease(k);
+      if (k >= 1) return res();
+      requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  });
+}
+
+/* ---------------- journey ---------------- */
+const stage = $('#stage'), vignette = $('#vignette');
+function setWhere(t) { $('#where').textContent = t; }
+
+async function runJourney() {
+  const id = ++journeyId;
+  await photosReady;
+  for (let i = 0; i < stations.length; i++) {
+    if (id !== journeyId) return;
+    const st = stations[i];
+    skipTravel = false; skipPhotos = false; nudge = false; stopped = false;
+    camMode = 'follow';
+    setWhere('Next stop: ' + st.name);
+    if (i > 0) horn();
+    const dist = Math.abs(stationS[i] - head);
+    await travel(head, stationS[i], clamp(dist / 70, 3, 6.5) * 1000, id);
+    if (id !== journeyId) return;
+    skipTravel = false; stopped = true;
+    chime(); setWhere(st.name);
+    const bn = $('#banner');
+    $('#bnSmall').textContent = `Station ${i + 1} of ${stations.length}`;
+    $('#bnName').textContent = st.name;
+    bn.classList.add('show');
+    await wait(1700);
+    bn.classList.remove('show');
+    for (let k = 0; k < st.photos.length; k++) {
+      if (id !== journeyId) return;
+      const n = st.photos[k];
+      if (skipPhotos) { dotFor[n].classList.add('seen'); continue; }
+      showPolaroid(n, st);
+      await wait(CONFIG.photoSeconds * 1000);
+    }
+    if (id !== journeyId) return;
+    await collapsePile(i);
+    addPin(i);
+    await wait(900);
+  }
+  if (id !== journeyId) return;
+  finale();
+}
+
+function showPolaroid(n, st) {
+  nudge = false;
+  [...stage.children].forEach(c => c.classList.add('old'));
+  const idx = stations.flatMap(s => s.photos).indexOf(n) + 1;
+  const p = buildPolaroid(n, st.name, `${idx} / ${TOTAL_PHOTOS}`);
+  const sx = Math.min(46, innerWidth * .08);
+  p.style.setProperty('--x', (Math.random() * 2 - 1) * sx + 'px');
+  p.style.setProperty('--y', (Math.random() * 2 - 1) * 22 + 'px');
+  p.style.setProperty('--r', (Math.random() * 14 - 7).toFixed(1) + 'deg');
+  p.style.setProperty('--tr', (Math.random() * 10 - 5).toFixed(1) + 'deg');
+  p.addEventListener('click', () => { nudge = true; });
+  stage.appendChild(p);
+  vignette.classList.add('on');
+  dotFor[n].classList.add('seen');
+}
+
+async function collapsePile(i) {
+  const items = [...stage.children];
+  const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+  const p = stationP[i];
+  const sx = r.left + (p.x - vb.x) / vb.width * r.width;
+  const sy = r.top + (p.y - 100 - vb.y) / vb.height * r.height;
+  const dx = sx - innerWidth / 2, dy = sy - innerHeight / 2;
+  items.forEach((c, k) => {
+    setTimeout(() => {
+      c.style.setProperty('--x', dx + 'px'); c.style.setProperty('--y', dy + 'px');
+      c.classList.add('fly');
+    }, k * 90);
+  });
+  vignette.classList.remove('on');
+  await wait(1100 + items.length * 90);
+  items.forEach(c => c.remove());
+}
+
+function addPin(i) {
+  if (pins[i]) return;
+  const st = stations[i], p = stationP[i], first = PHOTOS[st.photos[0]];
+  const outer = el('g', { transform: `translate(${p.x.toFixed(1)} ${(p.y - 110).toFixed(1)})`, tabindex: 0, role: 'button', 'aria-label': `Open photos from ${st.name}` }, L.labels);
+  const g = el('g', { 'class': 'pin' }, outer);
+  el('line', { x1: 0, y1: 24, x2: 0, y2: 42, stroke: '#f7f0e4', 'stroke-width': 2 }, g);
+  el('circle', { r: 26, fill: '#f7f0e4', 'class': 'pinring', stroke: '#f7f0e4', 'stroke-width': 2 }, g);
+  const cid = 'clip' + i;
+  const cp = el('clipPath', { id: cid }, g); el('circle', { r: 22 }, cp);
+  if (first) {
+    const im = el('image', { x: -26, y: -26, width: 52, height: 52, preserveAspectRatio: 'xMidYMid slice', 'clip-path': `url(#${cid})` }, g);
+    im.setAttribute('href', first.src);
+  } else {
+    el('circle', { r: 22, fill: '#ec7f8e' }, g);
+  }
+  el('circle', { cx: 18, cy: -18, r: 9.5, fill: '#f2a65a' }, g);
+  const t = el('text', { x: 18, y: -14, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#241a33', 'font-family': 'Figtree,system-ui,sans-serif' }, g);
+  t.textContent = st.photos.length;
+  const open = () => { let k = 0; for (let j = 0; j < i; j++) k += stations[j].photos.length; openAlbum(k); };
+  outer.style.cursor = 'pointer';
+  outer.addEventListener('click', open);
+  outer.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
+  requestAnimationFrame(() => requestAnimationFrame(() => g.classList.add('in')));
+  pins[i] = outer;
+}
+
+async function finale() {
+  const id = journeyId;
+  camMode = 'finale'; stopped = false;
+  setWhere('End of the line');
+  await wait(1500);
+  if (id !== journeyId) return;
+  chime();
+  document.body.classList.add('done');
+  $('#finTitle').textContent = `Happy birthday, ${CONFIG.name}`;
+  $('#finMsg').textContent = CONFIG.message;
+  $('#finale').classList.add('show');
+  lightsList.length = 0; for (let i = 0; i < 60; i++) lightsList.push(newLight(true)); lightsOn = true;
+}
+
+function resetAll() {
+  journeyId++;
+  pins.forEach(p => p && p.remove()); pins.length = 0;
+  [...stage.children].forEach(c => c.remove());
+  document.querySelectorAll('.dot').forEach(d => d.classList.remove('seen'));
+  $('#finale').classList.remove('show'); document.body.classList.remove('done');
+  $('#banner').classList.remove('show'); vignette.classList.remove('on');
+  lightsOn = false;
+  head = START_HEAD; prevHead = head; camMode = 'overview'; stopped = false;
+  skipTravel = skipPhotos = nudge = false;
+}
+
+/* ---------------- album ---------------- */
+const flat = stations.flatMap(s => s.photos.map(n => ({ n, st: s })));
+let albumIdx = 0;
+function renderAlbum() {
+  const { n, st } = flat[albumIdx];
+  const p = buildPolaroid(n, st.name, `${albumIdx + 1} / ${flat.length}`);
+  p.classList.add('static'); p.style.setProperty('--r', ((albumIdx % 2) ? 1.6 : -1.6) + 'deg');
+  const holder = $('#albumCard'); holder.innerHTML = ''; holder.appendChild(p);
+  $('#albumCount').textContent = `${albumIdx + 1} / ${flat.length}`;
+}
+function openAlbum(k) {
+  albumIdx = k; pausedBefore = paused; paused = true; albumOpen = true;
+  renderAlbum(); $('#album').classList.add('open'); $('#albumClose').focus();
+}
+function closeAlbum() { albumOpen = false; paused = pausedBefore; $('#album').classList.remove('open'); updatePauseIcon(); }
+const albumStep = d => { albumIdx = (albumIdx + d + flat.length) % flat.length; renderAlbum(); };
+$('#albumPrev').onclick = () => albumStep(-1);
+$('#albumNext').onclick = () => albumStep(1);
+$('#albumClose').onclick = closeAlbum;
+$('#album').addEventListener('click', e => { if (e.target.id === 'album') closeAlbum(); });
+
+/* ---------------- controls ---------------- */
+const ICON = {
+  pause: '<svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg>',
+  skip: '<svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM16 5h3v14h-3z"/></svg>',
+  on: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15 9a4 4 0 010 6M17.5 6.5a8 8 0 010 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  off: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+};
+function updatePauseIcon() {
+  $('#btnPause').innerHTML = paused ? ICON.play : ICON.pause;
+  $('#btnPause').setAttribute('aria-label', paused ? 'Resume the journey' : 'Pause the journey');
+}
+function updateSoundIcon() {
+  $('#btnSound').innerHTML = muted ? ICON.off : ICON.on;
+  $('#btnSound').setAttribute('aria-label', muted ? 'Unmute the music' : 'Mute the music');
+}
+$('#btnSkip').innerHTML = ICON.skip;
+updatePauseIcon(); updateSoundIcon();
+
+const togglePause = () => { if (!started || albumOpen) return; paused = !paused; updatePauseIcon(); };
+const toggleSound = () => { muted = !muted; song.muted = muted; updateSoundIcon(); };
+function advance() {
+  if (!started || albumOpen || document.body.classList.contains('done')) return;
+  paused = false; updatePauseIcon();
+  if (stopped) { skipPhotos = true; nudge = true; } else { skipTravel = true; }
+}
+$('#btnPause').onclick = togglePause;
+$('#btnSkip').onclick = advance;
+$('#btnSound').onclick = toggleSound;
+document.addEventListener('keydown', e => {
+  if (albumOpen) {
+    if (e.key === 'Escape') closeAlbum();
+    if (e.key === 'ArrowRight') albumStep(1);
+    if (e.key === 'ArrowLeft') albumStep(-1);
+    return;
+  }
+  if (e.key === ' ' && e.target.tagName !== 'BUTTON') { e.preventDefault(); togglePause(); }
+  if (e.key === 'ArrowRight') advance();
+  if (e.key.toLowerCase() === 'm') toggleSound();
+});
+
+$('#btnBoard').onclick = () => {
+  started = true;
+  $('#intro').classList.add('gone');
+  song.play().then(fadeSong).catch(() => {});
+  horn(); runJourney();
+};
+$('#btnAgain').onclick = () => { resetAll(); setTimeout(() => { horn(); runJourney(); }, 900); };
+$('#btnBrowse').onclick = () => openAlbum(0);
+trainG.addEventListener('click', () => { horn(); for (let i = 0; i < 9; i++) setTimeout(() => spawnPuff(0), i * 70); });
+$('#introTitle').textContent = 'Memory Train';
+
+/* ---------------- render loop ---------------- */
+const cam = { x: 640, y: 410, w: 1300 };
+const par = [[L.far, .88], [L.clouds, .7], [L.m1, .5], [L.m2, .32], [L.hills, .16]];
+const puffs = []; let smokeAcc = 0, last = performance.now();
+
+function spawnPuff(vx0) {
+  const a = ang(head), p = pt(head), lx = 17, ly = -41;
+  const x = p.x + lx * Math.cos(a) - ly * Math.sin(a), y = p.y + lx * Math.sin(a) + ly * Math.cos(a);
+  const c = el('circle', { cx: x, cy: y, r: 3, fill: '#f1e8ff', opacity: .5 }, L.smoke);
+  puffs.push({ c, x, y, vx: -Math.min(40, vx0 * .18) + (Math.random() * 12 - 6), life: 0 });
+}
+
+const lights = [], cv = $('#fx'), cx2 = cv.getContext('2d');
+let lightsOn = false, lightsList = lights;
+function newLight(init) {
+  return { x: Math.random() * innerWidth, y: init ? Math.random() * innerHeight : innerHeight + 20, r: 2 + Math.random() * 4, vy: 12 + Math.random() * 26, ph: Math.random() * 6.28, col: Math.random() < .7 ? '242,166,90' : '236,127,142' };
+}
+function sizeCanvas() { const d = devicePixelRatio || 1; cv.width = innerWidth * d; cv.height = innerHeight * d; cx2.setTransform(d, 0, 0, d, 0, 0); }
+addEventListener('resize', sizeCanvas); sizeCanvas();
+
+function camTarget() {
+  const aspect = innerWidth / innerHeight;
+  if (camMode === 'overview' || camMode === 'finale') return { x: 640, y: camMode === 'finale' ? 455 : 410, w: Math.max(1300, 560 * aspect) };
+  const p = pt(head);
+  return { x: p.x + (stopped ? -30 : 50), y: p.y - (stopped ? 165 : 70), w: Math.max(470, 430 * aspect) };
+}
+
+function frame(now) {
+  const dt = Math.min(.05, Math.max(.001, (now - last) / 1000)); last = now;
+  const ds = head - prevHead; prevHead = head;
+  const speed = Math.abs(ds) / dt;
+  moving = speed > 8;
+
+  cars.forEach((g, i) => {
+    const s = head - OFFS[i], p = pt(s), a = ang(s);
+    g.setAttribute('transform', `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)}) rotate(${(a * 180 / Math.PI).toFixed(2)})`);
+  });
+  spin += ds;
+  spinners.forEach(w => w.s.setAttribute('transform', `rotate(${((spin / w.r) * 57.3).toFixed(1)})`));
+  travelled.setAttribute('stroke-dasharray', `${Math.max(0, head - 10).toFixed(1)} 100000`);
+
+  const t = camTarget(), k = 1 - Math.exp(-dt * 2.2);
+  cam.x += (t.x - cam.x) * k; cam.y += (t.y - cam.y) * k; cam.w += (t.w - cam.w) * k;
+  const aspect = innerWidth / innerHeight, h = cam.w / aspect;
+  svg.setAttribute('viewBox', `${(cam.x - cam.w / 2).toFixed(2)} ${(cam.y - h / 2).toFixed(2)} ${cam.w.toFixed(2)} ${h.toFixed(2)}`);
+  par.forEach(([g, f]) => g.setAttribute('transform', `translate(${((cam.x - 640) * f).toFixed(1)} 0)`));
+
+  smokeAcc += dt * (moving ? 10 : 2.4);
+  while (smokeAcc >= 1) { smokeAcc -= 1; spawnPuff(ds / dt); }
+  for (let i = puffs.length - 1; i >= 0; i--) {
+    const p = puffs[i]; p.life += dt;
+    const u = p.life / 2.4;
+    if (u >= 1) { p.c.remove(); puffs.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y -= 20 * dt;
+    p.c.setAttribute('cx', p.x.toFixed(1)); p.c.setAttribute('cy', p.y.toFixed(1));
+    p.c.setAttribute('r', (3 + 10 * u).toFixed(1)); p.c.setAttribute('opacity', (.5 * (1 - u)).toFixed(2));
+  }
+
+  if (lightsOn) {
+    cx2.clearRect(0, 0, innerWidth, innerHeight);
+    cx2.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < lightsList.length; i++) {
+      const l = lightsList[i];
+      l.y -= l.vy * dt; l.x += Math.sin(now / 1500 + l.ph) * .25;
+      if (l.y < -20) lightsList[i] = newLight(false);
+      const a = .55 * Math.min(1, l.y / 160 + .2);
+      const g = cx2.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r * 4);
+      g.addColorStop(0, `rgba(${l.col},${a})`); g.addColorStop(1, `rgba(${l.col},0)`);
+      cx2.fillStyle = g; cx2.beginPath(); cx2.arc(l.x, l.y, l.r * 4, 0, 6.283); cx2.fill();
+    }
+  } else if (lightsList.length) {
+    cx2.clearRect(0, 0, innerWidth, innerHeight); lightsList.length = 0;
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+setWhere('Ready to board');
+})();
+</script>
+</body>
+</html>
